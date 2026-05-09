@@ -6,1089 +6,728 @@
 <title>CardFlow — Smart Credit Management</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #f5f3ef;
-    --surface: #ffffff;
-    --surface2: #faf9f7;
-    --ink: #1a1714;
-    --ink2: #5c5852;
-    --ink3: #9b9690;
-    --accent: #e8533a;
-    --accent2: #2563eb;
-    --border: #e8e5e0;
-    --shadow: 0 2px 20px rgba(26,23,20,0.08);
-    --shadow-lg: 0 12px 48px rgba(26,23,20,0.14);
-    --r: 20px;
-  }
+:root {
+  --bg:#f2f5f2;--surface:#fff;--surface2:#f7faf7;
+  --ink:#111a11;--ink2:#4a5a4a;--ink3:#8a9e8a;
+  --accent:#2d7a4f;--blue:#1a6b3c;--border:#d8e6d8;
+  --shadow:0 2px 16px rgba(15,30,15,.07);
+  --shadow-lg:0 12px 48px rgba(15,30,15,.13);
+  --r:18px;--nav-h:64px;--tab-h:52px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Times New Roman',Times,serif;background:var(--bg);color:var(--ink);min-height:100vh;overflow-x:hidden}
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── TOP NAV ── */
+.top-nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:var(--nav-h);background:rgba(255,255,255,.93);
+  backdrop-filter:blur(18px);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 44px;
+}
+.logo{font-family:'Times New Roman',Times,serif;font-size:1.4rem;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:9px;text-decoration:none;cursor:pointer}
+.logo-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);animation:pulse 2.2s infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.6}}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-btn{padding:8px 20px;border-radius:100px;font-family:'Times New Roman',Times,serif;font-size:.82rem;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:.18s}
+.nav-btn.ghost{background:transparent;color:var(--ink2);border:1px solid var(--border)}
+.nav-btn.ghost:hover{background:var(--bg);color:var(--ink)}
+.nav-btn.solid{background:var(--ink);color:#fff}
+.nav-btn.solid:hover{background:var(--accent)}
 
-  html { scroll-behavior: smooth; }
+/* ── TAB BAR ── */
+.tab-bar{
+  position:fixed;top:var(--nav-h);left:0;right:0;z-index:190;
+  height:var(--tab-h);background:#fff;border-bottom:1px solid var(--border);
+  display:flex;align-items:stretch;padding:0 44px;gap:2px;
+  box-shadow:0 2px 10px rgba(15,30,15,.04);
+}
+.tab{
+  position:relative;display:flex;align-items:center;gap:9px;
+  padding:0 18px;font-size:.84rem;font-weight:600;color:var(--ink2);
+  font-family:'Times New Roman',Times,serif;
+  cursor:pointer;border:none;background:none;white-space:nowrap;
+  transition:color .18s;border-radius:10px 10px 0 0;
+}
+.tab-indicator{
+  width:22px;height:22px;border-radius:6px;
+  border:2px solid var(--border);background:transparent;
+  flex-shrink:0;transition:background .22s,border-color .22s,box-shadow .22s;
+}
+.tab::after{
+  content:'';position:absolute;bottom:0;left:8px;right:8px;height:2.5px;
+  background:var(--accent);border-radius:3px 3px 0 0;
+  transform:scaleX(0);transition:transform .22s cubic-bezier(.4,0,.2,1);
+}
+.tab:hover{color:var(--ink)}
+.tab:hover .tab-indicator{border-color:var(--accent);background:rgba(45,122,79,.08)}
+.tab.active{color:var(--ink)}
+.tab.active::after{transform:scaleX(1)}
+.tab.active .tab-indicator{background:var(--accent);border-color:var(--accent);box-shadow:0 2px 8px rgba(45,122,79,.3)}
+.tab-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:18px;height:18px;border-radius:9px;padding:0 5px;
+  background:var(--accent);color:#fff;font-size:.6rem;font-weight:700;
+}
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--ink);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+/* ── PAGE SHELL ── */
+.page-wrap{margin-top:calc(var(--nav-h) + var(--tab-h));min-height:calc(100vh - var(--nav-h) - var(--tab-h))}
+.page{display:none}
+.page.active{display:block;animation:fadeUp .38s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 
-  /* ─── NAV ─── */
-  nav {
-    position: sticky; top: 0; z-index: 100;
-    background: rgba(245,243,239,0.85);
-    backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 48px;
-    display: flex; align-items: center; justify-content: space-between;
-    height: 68px;
-  }
-  .logo {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.5rem; font-weight: 700;
-    color: var(--ink);
-    display: flex; align-items: center; gap: 10px;
-  }
-  .logo-dot {
-    width: 10px; height: 10px;
-    background: var(--accent);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0%,100%{transform:scale(1);opacity:1}
-    50%{transform:scale(1.4);opacity:.7}
-  }
-  .nav-links {
-    display: flex; gap: 36px; list-style: none;
-  }
-  .nav-links a {
-    text-decoration: none; color: var(--ink2);
-    font-size: .9rem; font-weight: 500;
-    transition: color .2s;
-  }
-  .nav-links a:hover { color: var(--ink); }
-  .nav-cta {
-    background: var(--ink); color: #fff;
-    padding: 10px 24px; border-radius: 100px;
-    font-size: .875rem; font-weight: 600;
-    text-decoration: none; transition: background .2s, transform .15s;
-    border: none; cursor: pointer;
-  }
-  .nav-cta:hover { background: var(--accent); transform: translateY(-1px); }
+/* ── SHARED ── */
+.container{max-width:1180px;margin:0 auto;padding:0 40px}
+.sl{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:6px}
+.st{font-family:'Times New Roman',Times,serif;font-size:clamp(1.7rem,3vw,2.4rem);line-height:1.18;margin-bottom:10px}
+.ss{color:var(--ink2);font-size:.93rem;line-height:1.65;max-width:500px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;border-radius:100px;font-family:'Times New Roman',Times,serif;font-size:.88rem;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:.2s}
+.btn-dark{background:var(--ink);color:#fff}
+.btn-dark:hover{background:var(--accent);transform:translateY(-2px);box-shadow:0 8px 22px rgba(45,122,79,.26)}
+.btn-outline{background:transparent;color:var(--ink);border:1.5px solid var(--border)}
+.btn-outline:hover{border-color:var(--ink);background:#fff}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:#1e6038;transform:translateY(-2px)}
 
-  /* ─── HERO ─── */
-  .hero {
-    padding: 80px 48px 60px;
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 64px; align-items: center;
-    max-width: 1280px; margin: 0 auto;
-  }
-  .hero-badge {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: #fff3f1; border: 1px solid #fbd4cd;
-    color: var(--accent); font-size: .8rem; font-weight: 600;
-    padding: 6px 14px; border-radius: 100px; margin-bottom: 24px;
-    letter-spacing: .04em; text-transform: uppercase;
-  }
-  .hero-badge::before {
-    content:''; width:6px;height:6px;
-    background:var(--accent);border-radius:50%;
-  }
-  h1 {
-    font-family: 'Playfair Display', serif;
-    font-size: clamp(2.6rem, 5vw, 4rem);
-    line-height: 1.12; letter-spacing: -.02em;
-    margin-bottom: 24px;
-  }
-  h1 em { font-style: italic; color: var(--accent); }
-  .hero-sub {
-    color: var(--ink2); font-size: 1.05rem; line-height: 1.7;
-    margin-bottom: 36px; max-width: 440px;
-  }
-  .hero-actions { display: flex; gap: 14px; align-items: center; }
-  .btn-primary {
-    background: var(--ink); color: #fff;
-    padding: 14px 32px; border-radius: 100px;
-    font-weight: 600; font-size: .95rem;
-    border: none; cursor: pointer;
-    transition: background .2s, transform .15s, box-shadow .2s;
-    text-decoration: none;
-  }
-  .btn-primary:hover { background: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(232,83,58,.3); }
-  .btn-secondary {
-    color: var(--ink2); font-weight: 500; font-size: .95rem;
-    background: none; border: none; cursor: pointer;
-    display: flex; align-items: center; gap: 8px;
-    text-decoration: none; transition: color .2s;
-  }
-  .btn-secondary:hover { color: var(--ink); }
-  .btn-secondary::before { content: '▶'; font-size: .7rem; }
+/* ══════════════════════════════════
+   HOME PAGE
+══════════════════════════════════ */
+.hero{
+  padding:60px 44px 52px;max-width:1180px;margin:0 auto;
+  display:grid;grid-template-columns:1fr 1fr;gap:52px;align-items:center;
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:7px;
+  background:#edf7f1;border:1px solid #a8d9bc;color:var(--accent);
+  font-size:.73rem;font-weight:700;padding:5px 14px;border-radius:100px;
+  margin-bottom:22px;letter-spacing:.04em;text-transform:uppercase;
+}
+.hero-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent)}
+h1{font-family:'Times New Roman',Times,serif;font-size:clamp(2.3rem,4.5vw,3.5rem);line-height:1.1;letter-spacing:-.02em;margin-bottom:18px}
+h1 em{font-style:italic;color:var(--accent)}
+.hero-sub{color:var(--ink2);font-size:1rem;line-height:1.7;margin-bottom:30px;max-width:420px}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap}
 
-  /* ─── HERO CARD STACK ─── */
-  .hero-visual {
-    position: relative; height: 420px;
-    display: flex; align-items: center; justify-content: center;
-  }
+/* card stack */
+.card-stack{position:relative;height:370px;display:flex;align-items:center;justify-content:center}
+.cc{
+  width:315px;height:192px;border-radius:18px;position:absolute;
+  padding:22px 24px;display:flex;flex-direction:column;justify-content:space-between;
+  box-shadow:0 22px 56px rgba(0,0,0,.22),0 4px 14px rgba(0,0,0,.1);
+  overflow:hidden;cursor:pointer;
+  transition:transform .45s cubic-bezier(.175,.885,.32,1.275),box-shadow .3s;
+}
+.cc:hover{box-shadow:0 30px 72px rgba(0,0,0,.28)}
+.cc-navy{background:linear-gradient(135deg,#0e2456 0%,#1a3a7a 55%,#0b1d47 100%);color:#fff;transform:rotate(-7deg) translateY(18px) translateX(-8px);z-index:1}
+.cc-navy:hover{transform:rotate(-5deg) translateY(8px) translateX(-8px)}
+.cc-black{background:linear-gradient(135deg,#181818 0%,#2d2d2d 45%,#0e0e0e 100%);color:#fff;transform:rotate(4deg) translateY(-8px) translateX(8px);z-index:2}
+.cc-black:hover{transform:rotate(2deg) translateY(-16px) translateX(8px)}
+.cc-coral{background:linear-gradient(135deg,#1e6038 0%,#2d7a4f 45%,#155030 100%);color:#fff;transform:rotate(1deg) translateY(46px) translateX(46px);z-index:0}
+.cc-coral:hover{transform:rotate(-1deg) translateY(38px) translateX(46px)}
+.cc-shine{position:absolute;top:0;left:0;right:0;height:55%;background:linear-gradient(180deg,rgba(255,255,255,.07) 0%,transparent 100%);pointer-events:none}
+.cc-glow{position:absolute;top:-40%;right:-20%;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.1) 0%,transparent 70%);pointer-events:none}
+.cc-top{display:flex;justify-content:space-between;align-items:flex-start}
+.cc-bank{font-size:.66rem;font-weight:700;letter-spacing:.08em;opacity:.75;text-transform:uppercase}
+.cc-chip{width:33px;height:25px;border-radius:4px;background:linear-gradient(135deg,#d4af37,#f0d060,#b8962a);position:relative;overflow:hidden;flex-shrink:0}
+.cc-chip::after{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(0,0,0,.2)}
+.cc-chip::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(0,0,0,.2)}
+.cc-mid{flex:1;display:flex;align-items:center}
+.cc-number{font-family:'Courier New',monospace;font-size:.88rem;letter-spacing:.18em;opacity:.88}
+.cc-bottom{display:flex;justify-content:space-between;align-items:flex-end}
+.cc-holder{font-size:.7rem;font-weight:600;letter-spacing:.04em;opacity:.8;text-transform:uppercase}
+.cc-exp{font-size:.62rem;opacity:.6}
+.cc-exp span{font-size:.7rem;font-weight:600;opacity:1;display:block;margin-top:2px}
+.cc-visa{font-size:1.2rem;font-style:italic;font-weight:800;letter-spacing:-.03em;opacity:.9}
+.cc-mc{display:flex}
+.cc-mc b{width:21px;height:21px;border-radius:50%;display:block}
+.cc-mc b:first-child{background:#eb001b;margin-right:-7px}
+.cc-mc b:last-child{background:#f79e1b;opacity:.9}
 
-  /* ─── CREDIT CARD BASE ─── */
-  .cc {
-    width: 340px; height: 210px;
-    border-radius: 18px;
-    position: absolute;
-    padding: 26px 28px;
-    display: flex; flex-direction: column; justify-content: space-between;
-    font-family: 'DM Sans', sans-serif;
-    box-shadow: 0 20px 60px rgba(0,0,0,.22), 0 4px 12px rgba(0,0,0,.12);
-    transition: transform .4s cubic-bezier(.175,.885,.32,1.275), box-shadow .4s;
-    cursor: pointer;
-    overflow: hidden;
-  }
-  .cc:hover { box-shadow: 0 32px 80px rgba(0,0,0,.28), 0 8px 20px rgba(0,0,0,.14); }
+/* stats */
+.stats-bar{background:var(--ink);color:#fff;padding:26px 0;display:flex;justify-content:center;gap:72px;flex-wrap:wrap}
+.stat{text-align:center}
+.stat-n{font-family:'Times New Roman',Times,serif;font-size:2.1rem;font-weight:700;display:block;line-height:1}
+.stat-n em{color:var(--accent);font-style:normal}
+.stat-l{font-size:.7rem;color:rgba(255,255,255,.45);margin-top:5px;text-transform:uppercase;letter-spacing:.07em}
 
-  /* Card 1 — Visa Sapphire (navy-gold) */
-  .cc-1 {
-    background: linear-gradient(135deg, #0f2555 0%, #1a3a7a 50%, #0d1f4a 100%);
-    color: #fff;
-    transform: rotate(-8deg) translateY(20px) translateX(-10px);
-    z-index: 1;
-  }
-  .cc-1:hover { transform: rotate(-6deg) translateY(12px) translateX(-10px); }
-  .cc-1 .cc-shine {
-    position:absolute;top:-50%;left:-50%;width:200%;height:200%;
-    background: radial-gradient(ellipse at 30% 30%, rgba(255,215,0,.12) 0%, transparent 60%);
-    pointer-events:none;
-  }
-  .cc-1 .cc-pattern {
-    position:absolute;bottom:-30px;right:-20px;width:200px;height:200px;
-    border-radius:50%;
-    background: radial-gradient(circle, rgba(255,255,255,.06) 0%, transparent 70%);
-    pointer-events:none;
-  }
-  .cc-1 .cc-pattern2 {
-    position:absolute;bottom:10px;right:30px;width:120px;height:120px;
-    border-radius:50%;
-    background: radial-gradient(circle, rgba(255,215,0,.08) 0%, transparent 70%);
-    pointer-events:none;
-  }
+/* video */
+.vs{padding:60px 44px;max-width:1180px;margin:0 auto}
+.vgrid{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-top:34px}
+.vc{background:#fff;border-radius:var(--r);overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);transition:transform .3s,box-shadow .3s}
+.vc:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.ve{position:relative;padding-bottom:56.25%;background:#ddd;overflow:hidden}
+.ve iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
+.vp{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer}
+.vp-navy{background:linear-gradient(135deg,#1a3a7a,#0e2456)}
+.vp-coral{background:linear-gradient(135deg,#2d7a4f,#1a5c38)}
+.vp-dark{background:linear-gradient(135deg,#1a1a1a,#333)}
+.play-btn{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:1.2rem;transition:.2s}
+.vp:hover .play-btn{background:rgba(255,255,255,.3);transform:scale(1.1)}
+.vp-title{color:#fff;font-family:'Times New Roman',Times,serif;font-size:.95rem;text-align:center;padding:0 18px;line-height:1.3}
+.vp-sub{color:rgba(255,255,255,.6);font-size:.72rem}
+.vm{padding:15px 18px}
+.vtag{display:inline-block;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 10px;border-radius:100px;margin-bottom:7px}
+.t-blue{background:#eff6ff;color:#2563eb}
+.t-coral{background:#edf7f1;color:var(--accent)}
+.t-gray{background:#f3f3f3;color:#555}
+.vm h3{font-size:.9rem;font-weight:700;margin-bottom:3px}
+.vm p{font-size:.76rem;color:var(--ink2);line-height:1.5}
+.vside{display:flex;flex-direction:column;gap:18px}
+.vside .ve{padding-bottom:63%}
 
-  /* Card 2 — Obsidian Black (premium) */
-  .cc-2 {
-    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 40%, #111 100%);
-    color: #fff;
-    transform: rotate(4deg) translateY(-10px) translateX(10px);
-    z-index: 2;
-  }
-  .cc-2:hover { transform: rotate(2deg) translateY(-18px) translateX(10px); }
-  .cc-2 .cc-shine {
-    position:absolute;top:0;left:0;right:0;height:60%;
-    background: linear-gradient(180deg, rgba(255,255,255,.06) 0%, transparent 100%);
-    pointer-events:none;
-  }
+/* ══════════════════════════════════
+   MY CARDS PAGE
+══════════════════════════════════ */
+.cpage{padding:46px 44px;max-width:1180px;margin:0 auto}
+.cph{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:34px}
+.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.ci{background:#fff;border-radius:var(--r);padding:22px;border:1px solid var(--border);box-shadow:var(--shadow);transition:transform .28s,box-shadow .28s;cursor:pointer;position:relative;overflow:hidden}
+.ci:hover{transform:translateY(-5px);box-shadow:var(--shadow-lg)}
+.ci::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.ci-blue::before{background:linear-gradient(90deg,#2563eb,#60a5fa)}
+.ci-coral::before{background:linear-gradient(90deg,#1e6038,#4caf80)}
+.ci-gold::before{background:linear-gradient(90deg,#d4af37,#f0d060)}
+.ci-purple::before{background:linear-gradient(90deg,#7c3aed,#a78bfa)}
+.ci-green::before{background:linear-gradient(90deg,#059669,#34d399)}
+.ci-slate::before{background:linear-gradient(90deg,#334155,#64748b)}
+.mc{width:100%;height:108px;border-radius:11px;margin-bottom:16px;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:12px 14px}
+.mc-blue{background:linear-gradient(135deg,#1e40af,#3b82f6)}
+.mc-coral{background:linear-gradient(135deg,#1e6038,#2d7a4f)}
+.mc-gold{background:linear-gradient(135deg,#92400e,#d97706)}
+.mc-purple{background:linear-gradient(135deg,#5b21b6,#8b5cf6)}
+.mc-green{background:linear-gradient(135deg,#065f46,#10b981)}
+.mc-slate{background:linear-gradient(135deg,#1e293b,#475569)}
+.mc-sh{position:absolute;top:-30%;right:-10%;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.13) 0%,transparent 70%);pointer-events:none}
+.mc-bank{font-size:.58rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.65)}
+.mc-num{font-family:monospace;font-size:.78rem;color:rgba(255,255,255,.88);letter-spacing:.1em}
+.mc-row{display:flex;justify-content:space-between;align-items:flex-end}
+.mc-name{font-size:.56rem;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.04em}
+.mc-visa{font-size:.88rem;font-style:italic;font-weight:800;color:rgba(255,255,255,.88)}
+.mc-mc2{display:flex}
+.mc-mc2 b{width:15px;height:15px;border-radius:50%;display:block}
+.mc-mc2 b:first-child{background:#eb001b;margin-right:-5px}
+.mc-mc2 b:last-child{background:#f79e1b}
+.ci-n{font-weight:700;font-size:.92rem;margin-bottom:3px}
+.ci-d{font-size:.76rem;color:var(--ink2);margin-bottom:12px;line-height:1.45}
+.ci-pills{display:flex;flex-wrap:wrap;gap:5px}
+.pill{font-size:.66rem;padding:3px 8px;border-radius:100px;background:var(--bg);border:1px solid var(--border);color:var(--ink2);font-weight:500}
+.ci-ft{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.ci-fee{font-size:.68rem;color:var(--ink3)}
+.ci-fee strong{font-weight:700;color:var(--ink);font-size:.82rem;display:block}
+.badge{font-size:.66rem;font-weight:700;padding:3px 9px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em}
+.b-top{background:#fef3c7;color:#92400e}
+.b-new{background:#dcfce7;color:#065f46}
+.b-hot{background:#fee2e2;color:#991b1b}
 
-  /* Card 3 — Coral Rewards */
-  .cc-3 {
-    background: linear-gradient(135deg, #e8533a 0%, #f07858 40%, #c43d25 100%);
-    color: #fff;
-    transform: rotate(1deg) translateY(50px) translateX(50px);
-    z-index: 0;
-  }
-  .cc-3:hover { transform: rotate(-1deg) translateY(42px) translateX(50px); }
-  .cc-3 .cc-shine {
-    position:absolute;top:0;right:0;width:180px;height:180px;
-    background: radial-gradient(circle, rgba(255,255,255,.15) 0%, transparent 70%);
-    pointer-events:none;
-  }
+/* ══════════════════════════════════
+   REWARDS PAGE
+══════════════════════════════════ */
+.rpage{padding:46px 44px;max-width:1180px;margin:0 auto}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:34px}
+.rc{background:#fff;border-radius:var(--r);padding:26px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.rc h3{font-size:.96rem;font-weight:700;margin-bottom:4px}
+.rc p{font-size:.78rem;color:var(--ink2);margin-bottom:18px;line-height:1.5}
+.rmeter{background:var(--bg);border-radius:100px;height:7px;overflow:hidden;margin-bottom:7px}
+.rfill{height:100%;border-radius:100px;transition:width .6s ease}
+.rf-blue{background:linear-gradient(90deg,#2563eb,#60a5fa)}
+.rf-coral{background:linear-gradient(90deg,#2d7a4f,#52b37a)}
+.rf-gold{background:linear-gradient(90deg,#d4af37,#f0d060)}
+.rmeta{display:flex;justify-content:space-between;font-size:.74rem;color:var(--ink3)}
+.rmeta strong{color:var(--ink);font-weight:700}
+.rc-big{
+  grid-column:1/-1;
+  background:linear-gradient(135deg,#0e2456,#1a3a7a);
+  border-color:transparent;
+  display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center;
+}
+.rc-big h3{font-family:'Times New Roman',Times,serif;font-size:1.2rem;color:#fff}
+.rc-big p{color:rgba(255,255,255,.6)}
+.rc-big .rmeta{color:rgba(255,255,255,.4) !important}
+.rc-big .rmeta strong{color:rgba(255,255,255,.9) !important}
+.rc-big .rmeter{background:rgba(255,255,255,.12)}
+.ptotal{font-family:'Times New Roman',Times,serif;font-size:2.8rem;font-weight:700;color:#fff;margin:14px 0}
+.pvis{display:flex;flex-direction:column;gap:12px}
+.prow{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.07);border-radius:11px;padding:12px 16px}
+.picon{font-size:1.4rem;width:36px;text-align:center}
+.plbl{font-size:.78rem;color:rgba(255,255,255,.65)}
+.pname{font-size:.62rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.pval{font-family:'Times New Roman',Times,serif;font-size:1.2rem;font-weight:700;color:#fff;margin-left:auto}
 
-  /* Card internals */
-  .cc-top { display:flex; justify-content:space-between; align-items:flex-start; }
-  .cc-bank { font-size: .8rem; font-weight: 600; letter-spacing: .06em; opacity: .85; text-transform:uppercase; }
-  .cc-chip {
-    width: 38px; height: 28px;
-    background: linear-gradient(135deg, #d4af37 0%, #f0d060 50%, #b8962a 100%);
-    border-radius: 5px; position: relative; overflow: hidden;
-  }
-  .cc-chip::after {
-    content:''; position:absolute;
-    top:50%;left:0;right:0;height:1px;
-    background:rgba(0,0,0,.25); transform:translateY(-50%);
-  }
-  .cc-chip::before {
-    content:''; position:absolute;
-    left:50%;top:0;bottom:0;width:1px;
-    background:rgba(0,0,0,.25); transform:translateX(-50%);
-  }
-  .cc-mid { flex:1; display:flex; align-items:center; padding: 4px 0; }
-  .cc-number {
-    font-size: .95rem; letter-spacing: .18em;
-    font-family: 'Courier New', monospace; opacity:.9;
-  }
-  .cc-bottom { display:flex; justify-content:space-between; align-items:flex-end; }
-  .cc-holder { font-size: .78rem; font-weight: 600; letter-spacing: .04em; opacity: .85; text-transform:uppercase; }
-  .cc-expires { font-size: .72rem; opacity: .7; }
-  .cc-expires span { font-size: .78rem; font-weight: 600; opacity: 1; display:block; margin-top:2px; }
-  .cc-network {
-    display: flex; align-items: center;
-  }
-  .cc-visa { font-size: 1.2rem; font-style: italic; font-weight: 700; letter-spacing:-.02em; opacity:.9; }
-  .cc-mc { display:flex; }
-  .cc-mc span {
-    width: 26px; height: 26px; border-radius: 50%;
-    display:block;
-  }
-  .cc-mc span:first-child { background:#eb001b; margin-right:-10px; }
-  .cc-mc span:last-child { background:#f79e1b; opacity:.9; }
-  .cc-amex { font-size:.75rem; font-weight:800; letter-spacing:.1em; opacity:.9; }
+/* ══════════════════════════════════
+   INSIGHTS PAGE
+══════════════════════════════════ */
+.ipage{padding:46px 44px;max-width:1180px;margin:0 auto}
+.igd{display:grid;grid-template-columns:2fr 1fr;gap:22px;margin-top:34px}
+.ic{background:#fff;border-radius:var(--r);padding:26px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.ic-h{font-size:.96rem;font-weight:700;margin-bottom:16px}
+.bar-chart{display:flex;align-items:flex-end;gap:7px;height:140px;margin-bottom:8px}
+.bw{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.bv{font-size:.64rem;font-weight:700;color:var(--ink)}
+.bl{font-size:.62rem;color:var(--ink3);text-align:center}
+.dw{display:flex;flex-direction:column;gap:9px}
+.dr{display:flex;align-items:center;gap:9px}
+.dd{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.dn{font-size:.78rem;color:var(--ink2);flex:1}
+.dbb{flex:2;height:6px;background:var(--bg);border-radius:100px;overflow:hidden}
+.dbf{height:100%;border-radius:100px}
+.dp{font-size:.76rem;font-weight:700;color:var(--ink);width:30px;text-align:right}
+.tl{display:flex;flex-direction:column}
+.ti2{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.ti2:last-child{border-bottom:none}
+.td{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.tc{flex:1}
+.tt{font-size:.82rem;font-weight:600;margin-bottom:2px}
+.tdate{font-size:.7rem;color:var(--ink3)}
+.ta{font-size:.82rem;font-weight:700;margin-left:auto;white-space:nowrap}
+.ta.g{color:#1e6038}
+.ta.r{color:#b91c1c}
 
-  /* ─── VIDEO SECTION ─── */
-  .video-section {
-    max-width: 1280px; margin: 40px auto; padding: 0 48px;
-  }
-  .section-label {
-    font-size: .8rem; font-weight: 600; text-transform: uppercase;
-    letter-spacing: .1em; color: var(--ink3); margin-bottom: 8px;
-  }
-  .section-title {
-    font-family: 'Playfair Display', serif;
-    font-size: clamp(1.8rem, 3vw, 2.6rem);
-    line-height: 1.2; margin-bottom: 12px;
-  }
-  .section-sub { color: var(--ink2); font-size: .95rem; line-height: 1.6; max-width: 520px; }
+/* ══════════════════════════════════
+   ADD CARD PAGE
+══════════════════════════════════ */
+.apage{padding:46px 44px;max-width:740px;margin:0 auto}
+.stepper{display:flex;gap:0;margin-bottom:38px}
+.si{flex:1;display:flex;flex-direction:column;align-items:center;position:relative}
+.si:not(:last-child)::after{content:'';position:absolute;top:17px;left:50%;width:100%;height:2px;background:var(--border);z-index:0}
+.si.done:not(:last-child)::after{background:var(--accent)}
+.snum{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;position:relative;z-index:1;transition:.2s}
+.si.active .snum{background:var(--accent);color:#fff;box-shadow:0 4px 14px rgba(45,122,79,.3)}
+.si.done .snum{background:var(--ink);color:#fff}
+.si:not(.active):not(.done) .snum{background:#fff;border:2px solid var(--border);color:var(--ink3)}
+.slbl{font-size:.68rem;font-weight:600;margin-top:6px;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+.si.active .slbl{color:var(--ink)}
+.fc{background:#fff;border-radius:var(--r);padding:34px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.fc h2{font-family:'Times New Roman',Times,serif;font-size:1.45rem;margin-bottom:5px}
+.fc-sub{font-size:.83rem;color:var(--ink2);margin-bottom:26px;line-height:1.55}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:.75rem;font-weight:600;margin-bottom:6px;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+.field input,.field select{width:100%;padding:11px 15px;border:1.5px solid var(--border);border-radius:11px;font-family:'Times New Roman',Times,serif;font-size:.88rem;color:var(--ink);background:#fff;outline:none;transition:.18s;-webkit-appearance:none}
+.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(45,122,79,.1)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cp{display:flex;gap:9px;margin-top:7px}
+.cpick{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:.18s}
+.cpick.sel{border-color:var(--ink);transform:scale(1.15)}
+.prev-cc{
+  width:100%;max-width:350px;height:215px;border-radius:18px;
+  margin:0 auto 22px;padding:22px 24px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  box-shadow:0 16px 48px rgba(0,0,0,.18);overflow:hidden;position:relative;
+  transition:background .3s;
+}
+.fa{display:flex;justify-content:space-between;margin-top:24px}
+.pg{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:18px}
+.pp{padding:11px;border-radius:11px;border:1.5px solid var(--border);background:#fff;cursor:pointer;text-align:center;transition:.18s;font-size:.78rem;font-weight:600}
+.pp:hover,.pp.sel{border-color:var(--accent);background:#edf7f1;color:var(--accent)}
+.ord{display:flex;align-items:center;gap:11px;margin:14px 0;color:var(--ink3);font-size:.76rem}
+.ord::before,.ord::after{content:'';flex:1;height:1px;background:var(--border)}
+.info-box{background:#edf7f1;border:1px solid #a8d9bc;border-radius:11px;padding:13px;font-size:.76rem;color:var(--ink2);line-height:1.6;margin-top:6px}
+.confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
+.cg-item{background:var(--bg);border-radius:11px;padding:14px}
+.cg-l{font-size:.66rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:5px}
+.cg-v{font-family:'Times New Roman',Times,serif;font-size:1.2rem;font-weight:700}
 
-  .video-grid {
-    display: grid; grid-template-columns: 2fr 1fr;
-    gap: 20px; margin-top: 36px;
-  }
-  .video-card {
-    background: var(--surface); border-radius: var(--r);
-    overflow: hidden; box-shadow: var(--shadow);
-    border: 1px solid var(--border);
-    transition: transform .3s, box-shadow .3s;
-  }
-  .video-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
-
-  .video-embed-wrap {
-    position: relative; padding-bottom: 56.25%;
-    background: #e8e5e0; overflow: hidden;
-  }
-  .video-embed-wrap iframe {
-    position: absolute; top: 0; left: 0;
-    width: 100%; height: 100%; border: none;
-  }
-  .video-placeholder {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #1a3a7a 0%, #0f2555 100%);
-    cursor: pointer; gap: 14px;
-  }
-  .video-placeholder.coral {
-    background: linear-gradient(135deg, #e8533a 0%, #c43d25 100%);
-  }
-  .video-placeholder.dark {
-    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-  }
-  .play-btn {
-    width: 64px; height: 64px; background: rgba(255,255,255,.2);
-    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem; transition: transform .2s, background .2s;
-    border: 2px solid rgba(255,255,255,.4);
-  }
-  .video-placeholder:hover .play-btn { transform: scale(1.1); background: rgba(255,255,255,.3); }
-  .play-btn-label { color: rgba(255,255,255,.8); font-size: .82rem; font-weight: 500; }
-  .video-placeholder-title {
-    color: #fff; font-family: 'Playfair Display', serif;
-    font-size: 1.1rem; font-weight: 600; text-align: center; padding: 0 20px;
-  }
-  .video-meta { padding: 18px 22px; }
-  .video-tag {
-    display:inline-block; font-size:.72rem; font-weight:600;
-    text-transform:uppercase; letter-spacing:.06em;
-    padding: 4px 10px; border-radius: 100px; margin-bottom: 8px;
-  }
-  .tag-blue { background:#eff6ff; color:#2563eb; }
-  .tag-coral { background:#fff3f1; color:var(--accent); }
-  .tag-dark { background:#f3f3f3; color:#555; }
-  .video-meta h3 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
-  .video-meta p { font-size: .82rem; color: var(--ink2); line-height: 1.5; }
-
-  .video-side { display: flex; flex-direction: column; gap: 20px; }
-  .video-side .video-embed-wrap { padding-bottom: 62%; }
-
-  /* ─── STATS ─── */
-  .stats-strip {
-    background: var(--ink); color: #fff;
-    padding: 28px 48px; margin: 60px 0;
-    display: flex; justify-content: center;
-    gap: 80px;
-  }
-  .stat { text-align: center; }
-  .stat-num {
-    font-family: 'Playfair Display', serif;
-    font-size: 2.4rem; font-weight: 700; color: #fff;
-    display: block; line-height: 1;
-  }
-  .stat-num em { color: var(--accent); font-style: normal; }
-  .stat-label { font-size: .8rem; color: rgba(255,255,255,.5); margin-top: 6px; text-transform: uppercase; letter-spacing: .06em; }
-
-  /* ─── CARDS SECTION ─── */
-  .cards-section {
-    max-width: 1280px; margin: 0 auto; padding: 60px 48px;
-  }
-  .cards-header {
-    display: flex; justify-content: space-between; align-items: flex-end;
-    margin-bottom: 40px;
-  }
-  .cards-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-  }
-  .card-item {
-    background: var(--surface); border-radius: var(--r);
-    padding: 28px; border: 1px solid var(--border);
-    box-shadow: var(--shadow); transition: transform .3s, box-shadow .3s;
-    cursor: pointer; position: relative; overflow: hidden;
-  }
-  .card-item:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
-  .card-item::before {
-    content:''; position:absolute; top:0;left:0;right:0;height:3px;
-  }
-  .card-item.blue::before { background: linear-gradient(90deg,#2563eb,#60a5fa); }
-  .card-item.coral::before { background: linear-gradient(90deg,#e8533a,#f07858); }
-  .card-item.gold::before { background: linear-gradient(90deg,#d4af37,#f0d060); }
-  .card-item.purple::before { background: linear-gradient(90deg,#7c3aed,#a78bfa); }
-  .card-item.green::before { background: linear-gradient(90deg,#059669,#34d399); }
-  .card-item.slate::before { background: linear-gradient(90deg,#334155,#64748b); }
-
-  .mini-card {
-    width: 100%; height: 120px; border-radius: 12px;
-    margin-bottom: 20px; position: relative; overflow: hidden;
-    display: flex; flex-direction: column; justify-content: space-between;
-    padding: 14px 16px;
-  }
-  .mini-card.blue { background: linear-gradient(135deg, #1e40af, #3b82f6); }
-  .mini-card.coral { background: linear-gradient(135deg, #c43d25, #e8533a); }
-  .mini-card.gold { background: linear-gradient(135deg, #92400e, #d97706); }
-  .mini-card.purple { background: linear-gradient(135deg, #5b21b6, #8b5cf6); }
-  .mini-card.green { background: linear-gradient(135deg, #065f46, #10b981); }
-  .mini-card.slate { background: linear-gradient(135deg, #1e293b, #475569); }
-
-  .mini-card-name { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform:uppercase; color:rgba(255,255,255,.7); }
-  .mini-card-num { font-family: monospace; font-size: .85rem; color: rgba(255,255,255,.9); letter-spacing: .1em; }
-  .mini-card-shine {
-    position:absolute;top:-40%;right:-20%;width:180px;height:180px;
-    border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.15) 0%,transparent 70%);
-    pointer-events:none;
-  }
-
-  .card-name { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
-  .card-desc { font-size: .82rem; color: var(--ink2); margin-bottom: 16px; line-height: 1.5; }
-  .card-pills { display: flex; flex-wrap: wrap; gap: 6px; }
-  .pill {
-    font-size: .72rem; padding: 4px 10px; border-radius: 100px;
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--ink2); font-weight: 500;
-  }
-  .card-footer {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border);
-  }
-  .card-limit { font-size: .78rem; color: var(--ink3); }
-  .card-limit strong { font-weight: 700; color: var(--ink); font-size: .88rem; display: block; }
-  .card-badge {
-    font-size: .72rem; font-weight: 700; padding: 5px 11px;
-    border-radius: 100px; text-transform: uppercase; letter-spacing: .04em;
-  }
-  .badge-top { background: #fef3c7; color: #92400e; }
-  .badge-new { background: #dcfce7; color: #065f46; }
-  .badge-hot { background: #fee2e2; color: #991b1b; }
-
-  /* ─── FEATURES ─── */
-  .features-section {
-    background: var(--surface); padding: 80px 48px;
-    margin: 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-  }
-  .features-inner { max-width: 1280px; margin: 0 auto; }
-  .features-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 36px; margin-top: 48px;
-  }
-  .feature {
-    display: flex; flex-direction: column; gap: 14px;
-  }
-  .feature-icon {
-    width: 52px; height: 52px; border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem;
-  }
-  .fi-blue { background: #eff6ff; }
-  .fi-coral { background: #fff3f1; }
-  .fi-gold { background: #fffbeb; }
-  .fi-purple { background: #f5f3ff; }
-  .fi-green { background: #f0fdf4; }
-  .fi-slate { background: #f8fafc; }
-  .feature h3 { font-size: 1rem; font-weight: 700; }
-  .feature p { font-size: .875rem; color: var(--ink2); line-height: 1.65; }
-
-  /* ─── HOW IT WORKS ─── */
-  .how-section {
-    max-width: 1280px; margin: 0 auto; padding: 80px 48px;
-  }
-  .steps { display: flex; gap: 0; margin-top: 48px; position: relative; }
-  .steps::before {
-    content:''; position:absolute;
-    top:28px; left:28px; right:28px; height:2px;
-    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent));
-    z-index: 0;
-  }
-  .step { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 16px; position: relative; z-index: 1; }
-  .step-num {
-    width: 56px; height: 56px; border-radius: 50%;
-    background: var(--surface); border: 2px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Playfair Display', serif;
-    font-size: 1.1rem; font-weight: 700; margin-bottom: 20px;
-    box-shadow: var(--shadow);
-    transition: background .3s, border-color .3s, color .3s;
-  }
-  .step:hover .step-num {
-    background: var(--accent); color: #fff; border-color: var(--accent);
-  }
-  .step h3 { font-size: .95rem; font-weight: 700; margin-bottom: 8px; }
-  .step p { font-size: .82rem; color: var(--ink2); line-height: 1.6; max-width: 180px; }
-
-  /* ─── CTA SECTION ─── */
-  .cta-section {
-    margin: 0 48px 80px;
-    background: linear-gradient(135deg, #0f2555 0%, #1a3a7a 60%, #0f1e4a 100%);
-    border-radius: 28px; padding: 72px 64px;
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 64px; align-items: center;
-    overflow: hidden; position: relative;
-    max-width: calc(1280px - 0px); /* full width within padding */
-    box-sizing: border-box;
-  }
-  .cta-section::before {
-    content:''; position:absolute;
-    top:-100px;right:-100px;width:400px;height:400px;
-    border-radius:50%;
-    background:radial-gradient(circle,rgba(255,255,255,.05) 0%,transparent 70%);
-    pointer-events:none;
-  }
-  .cta-section::after {
-    content:''; position:absolute;
-    bottom:-60px;left:40%;width:300px;height:300px;
-    border-radius:50%;
-    background:radial-gradient(circle,rgba(232,83,58,.1) 0%,transparent 70%);
-    pointer-events:none;
-  }
-  .cta-text h2 {
-    font-family: 'Playfair Display', serif;
-    font-size: 2.4rem; color: #fff; line-height: 1.2; margin-bottom: 16px;
-  }
-  .cta-text h2 em { color: #f07858; font-style: italic; }
-  .cta-text p { color: rgba(255,255,255,.6); line-height: 1.7; margin-bottom: 32px; }
-  .cta-form { display: flex; gap: 12px; }
-  .cta-form input {
-    flex: 1; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2);
-    border-radius: 100px; padding: 13px 22px; color: #fff;
-    font-family: 'DM Sans', sans-serif; font-size: .9rem;
-    outline: none; transition: border-color .2s;
-  }
-  .cta-form input::placeholder { color: rgba(255,255,255,.4); }
-  .cta-form input:focus { border-color: rgba(255,255,255,.5); }
-  .btn-white {
-    background: #fff; color: var(--ink);
-    padding: 13px 28px; border-radius: 100px;
-    font-weight: 700; font-size: .9rem; border: none; cursor: pointer;
-    white-space: nowrap; transition: background .2s, transform .15s;
-  }
-  .btn-white:hover { background: var(--accent); color: #fff; transform: translateY(-1px); }
-
-  .cta-visual { position: relative; height: 280px; }
-  /* mini card stack in CTA */
-  .cta-card {
-    width: 260px; height: 160px; border-radius: 14px;
-    position: absolute; padding: 18px 20px;
-    display: flex; flex-direction: column; justify-content: space-between;
-    box-shadow: 0 16px 48px rgba(0,0,0,.3); overflow: hidden;
-  }
-  .cta-card-1 {
-    background: linear-gradient(135deg, #e8533a, #c43d25);
-    transform: rotate(-6deg); top: 40px; left: 20px; z-index: 1;
-  }
-  .cta-card-2 {
-    background: linear-gradient(135deg, #d4af37, #b8962a);
-    transform: rotate(3deg); top: 20px; left: 50px; z-index: 2;
-  }
-  .cta-card-3 {
-    background: linear-gradient(135deg, #1a3a7a, #0f2555);
-    border: 1px solid rgba(255,255,255,.2);
-    transform: rotate(-1deg); top: 70px; left: 30px; z-index: 3;
-  }
-  .cta-card .cc-bank { opacity:.7; font-size: .68rem; }
-  .cta-card .cc-num-sm { font-family:monospace; font-size:.8rem; letter-spacing:.12em; opacity:.85; color:#fff; }
-  .cta-chip-sm {
-    width:28px;height:20px;border-radius:3px;
-    background:linear-gradient(135deg,#d4af37,#f0d060);
-  }
-
-  /* ─── FOOTER ─── */
-  footer {
-    background: var(--surface); border-top: 1px solid var(--border);
-    padding: 48px; display: flex; justify-content: space-between; align-items: center;
-  }
-  .footer-logo { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 1.2rem; }
-  .footer-links { display: flex; gap: 28px; }
-  .footer-links a { color: var(--ink2); text-decoration: none; font-size: .85rem; transition: color .2s; }
-  .footer-links a:hover { color: var(--ink); }
-  .footer-copy { font-size: .8rem; color: var(--ink3); }
-
-  /* ─── SCROLL ANIMATIONS ─── */
-  @keyframes fadeInUp {
-    from { opacity:0; transform:translateY(30px); }
-    to { opacity:1; transform:translateY(0); }
-  }
-  .animate { opacity:0; }
-  .animate.visible { animation: fadeInUp .6s ease forwards; }
-
-  /* Stagger children */
-  .stagger > * { opacity:0; }
-  .stagger.visible > *:nth-child(1) { animation: fadeInUp .5s .0s ease forwards; }
-  .stagger.visible > *:nth-child(2) { animation: fadeInUp .5s .1s ease forwards; }
-  .stagger.visible > *:nth-child(3) { animation: fadeInUp .5s .2s ease forwards; }
-  .stagger.visible > *:nth-child(4) { animation: fadeInUp .5s .3s ease forwards; }
-  .stagger.visible > *:nth-child(5) { animation: fadeInUp .5s .4s ease forwards; }
-  .stagger.visible > *:nth-child(6) { animation: fadeInUp .5s .5s ease forwards; }
-
-  @media (max-width: 900px) {
-    .hero { grid-template-columns:1fr; padding:48px 24px 40px; gap:40px; }
-    .hero-visual { height:300px; }
-    .cc { width:260px; height:160px; }
-    nav { padding: 0 24px; }
-    .nav-links { display:none; }
-    .video-section, .cards-section, .how-section { padding-left:24px; padding-right:24px; }
-    .video-grid { grid-template-columns:1fr; }
-    .cards-grid { grid-template-columns:1fr 1fr; }
-    .features-grid { grid-template-columns:1fr 1fr; }
-    .steps { flex-direction:column; gap:24px; }
-    .steps::before { display:none; }
-    .cta-section { grid-template-columns:1fr; margin:0 24px 60px; padding:48px 32px; }
-    .cta-visual { display:none; }
-    .stats-strip { gap:40px; flex-wrap:wrap; }
-    footer { flex-direction:column; gap:20px; text-align:center; }
-    .footer-links { flex-wrap:wrap; justify-content:center; }
-  }
+/* ── RESPONSIVE ── */
+@media(max-width:940px){
+  .hero{grid-template-columns:1fr;padding:40px 22px}
+  .card-stack{height:280px}
+  .cc{width:248px;height:150px}
+  .tab-bar{padding:0 14px;overflow-x:auto;gap:0}
+  .tab{padding:0 11px;font-size:.76rem}
+  .vs,.cpage,.rpage,.ipage,.apage{padding-left:20px;padding-right:20px}
+  .top-nav{padding:0 20px}
+  .cgrid,.igd,.rgrid{grid-template-columns:1fr}
+  .vgrid{grid-template-columns:1fr}
+  .rc-big{grid-column:1}
+  .stats-bar{gap:30px;padding:22px 18px}
+  .frow{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 
-<!-- NAV -->
-<nav>
-  <div class="logo">
-    <div class="logo-dot"></div>
-    CardFlow
+<!-- TOP NAV -->
+<nav class="top-nav">
+  <a class="logo" onclick="showPage('home')">
+    <div class="logo-dot"></div>CardFlow
+  </a>
+  <div class="nav-right">
+    <a class="nav-btn ghost" href="#">Sign In</a>
+    <a class="nav-btn solid" onclick="showPage('add')">+ Add Card</a>
   </div>
-  <ul class="nav-links">
-    <li><a href="#cards">Cards</a></li>
-    <li><a href="#learn">Learn</a></li>
-    <li><a href="#features">Features</a></li>
-    <li><a href="#how">How It Works</a></li>
-  </ul>
-  <a href="#" class="nav-cta">Add a Card →</a>
 </nav>
 
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-content animate">
-    <div class="hero-badge">Smart Credit Management</div>
-    <h1>Master your cards.<br><em>Maximize</em> every rupee.</h1>
-    <p class="hero-sub">CardFlow tracks your billing cycles, reward points, and spending windows — so you always know the best card to use, and the best day to swipe it.</p>
-    <div class="hero-actions">
-      <a href="#" class="btn-primary">Get Started Free</a>
-      <a href="#learn" class="btn-secondary">Watch how it works</a>
-    </div>
-  </div>
-
-  <div class="hero-visual">
-    <!-- Card 1: Navy Visa -->
-    <div class="cc cc-1">
-      <div class="cc-shine"></div>
-      <div class="cc-pattern"></div>
-      <div class="cc-pattern2"></div>
-      <div class="cc-top">
-        <div class="cc-bank">Sapphire Reserve</div>
-        <div class="cc-chip"></div>
-      </div>
-      <div class="cc-mid">
-        <div class="cc-number">4521 •••• •••• 8834</div>
-      </div>
-      <div class="cc-bottom">
-        <div>
-          <div class="cc-holder">Adrish Kumar</div>
-          <div class="cc-expires">Expires <span>09/27</span></div>
-        </div>
-        <div class="cc-network">
-          <span class="cc-visa" style="font-size:1.4rem;letter-spacing:-.03em;">VISA</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Card 2: Obsidian Black -->
-    <div class="cc cc-2">
-      <div class="cc-shine"></div>
-      <div class="cc-top">
-        <div class="cc-bank" style="color:rgba(255,255,255,.6);">Prestige Black</div>
-        <div class="cc-chip"></div>
-      </div>
-      <div class="cc-mid">
-        <div class="cc-number" style="letter-spacing:.22em;font-size:.88rem;color:rgba(255,255,255,.7);">5412 •••• •••• 2291</div>
-      </div>
-      <div class="cc-bottom">
-        <div>
-          <div class="cc-holder" style="color:rgba(255,255,255,.7);">Adrish Kumar</div>
-          <div class="cc-expires" style="color:rgba(255,255,255,.4);">Expires <span style="color:rgba(255,255,255,.7);">12/26</span></div>
-        </div>
-        <div class="cc-mc">
-          <span></span><span></span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Card 3: Coral -->
-    <div class="cc cc-3">
-      <div class="cc-shine"></div>
-      <div class="cc-top">
-        <div class="cc-bank">Rewards Plus</div>
-        <div class="cc-chip"></div>
-      </div>
-      <div class="cc-mid">
-        <div class="cc-number">3782 •••••• •3456</div>
-      </div>
-      <div class="cc-bottom">
-        <div>
-          <div class="cc-holder">Adrish Kumar</div>
-          <div class="cc-expires">Expires <span>03/28</span></div>
-        </div>
-        <div><span class="cc-amex">AMEX</span></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- STATS -->
-<div class="stats-strip">
-  <div class="stat">
-    <span class="stat-num">2.<em>4</em>L+</span>
-    <div class="stat-label">Reward Points Tracked</div>
-  </div>
-  <div class="stat">
-    <span class="stat-num"><em>48</em>hrs</span>
-    <div class="stat-label">Average Setup Time</div>
-  </div>
-  <div class="stat">
-    <span class="stat-num">₹<em>12</em>K</span>
-    <div class="stat-label">Avg. Annual Savings</div>
-  </div>
-  <div class="stat">
-    <span class="stat-num"><em>50</em>+</span>
-    <div class="stat-label">Indian Cards Supported</div>
-  </div>
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab active" onclick="showPage('home')" data-page="home"><span class="tab-indicator"></span> Home</button>
+  <button class="tab" onclick="showPage('mycards')" data-page="mycards"><span class="tab-indicator"></span> My Cards <span class="tab-badge">3</span></button>
+  <button class="tab" onclick="showPage('rewards')" data-page="rewards"><span class="tab-indicator"></span> Rewards</button>
+  <button class="tab" onclick="showPage('insights')" data-page="insights"><span class="tab-indicator"></span> Insights</button>
+  <button class="tab" onclick="showPage('add')" data-page="add"><span class="tab-indicator"></span> Add Card</button>
 </div>
 
-<!-- VIDEO SECTION -->
-<section class="video-section" id="learn">
-  <div class="animate">
-    <div class="section-label">Learn & Explore</div>
-    <h2 class="section-title">Understand credit.<br>Use it smarter.</h2>
-    <p class="section-sub">Watch our guides on billing cycles, reward maximization, and building a powerful credit card stack for India.</p>
-  </div>
+<div class="page-wrap">
 
-  <div class="video-grid stagger">
-    <!-- Main Video -->
-    <div class="video-card">
-      <div class="video-embed-wrap">
-        <!-- Replace src with actual YouTube/Vimeo embed URL -->
-        <div class="video-placeholder" onclick="loadVideo(this,'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1')">
-          <div class="play-btn">▶</div>
-          <div class="video-placeholder-title">The Complete Guide to Credit Card Billing Cycles in India</div>
-          <div class="play-btn-label">9 min · CardFlow Guide</div>
-        </div>
-      </div>
-      <div class="video-meta">
-        <div class="video-tag tag-blue">Featured Guide</div>
-        <h3>Billing Cycles Explained</h3>
-        <p>Learn exactly when your statement generates, why it matters, and how to use the 45-day interest-free window to your advantage.</p>
-      </div>
-    </div>
+<!-- ① HOME -->
+<div class="page active" id="page-home">
 
-    <!-- Side Videos -->
-    <div class="video-side">
-      <div class="video-card">
-        <div class="video-embed-wrap">
-          <div class="video-placeholder coral" onclick="loadVideo(this,'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1')">
-            <div class="play-btn">▶</div>
-            <div class="video-placeholder-title">Top 5 Reward Cards for 2025</div>
-            <div class="play-btn-label">6 min</div>
-          </div>
-        </div>
-        <div class="video-meta">
-          <div class="video-tag tag-coral">Rewards</div>
-          <h3>Best Reward Cards 2025</h3>
-          <p>HDFC Regalia vs Axis Magnus — which stacks better for your spending?</p>
-        </div>
-      </div>
-
-      <div class="video-card">
-        <div class="video-embed-wrap">
-          <div class="video-placeholder dark" onclick="loadVideo(this,'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1')">
-            <div class="play-btn">▶</div>
-            <div class="video-placeholder-title">Credit Score Secrets Banks Don't Tell You</div>
-            <div class="play-btn-label">11 min</div>
-          </div>
-        </div>
-        <div class="video-meta">
-          <div class="video-tag tag-dark">Credit Health</div>
-          <h3>Boost Your CIBIL Score</h3>
-          <p>7 actionable strategies to improve your score in 90 days.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CARDS CATALOGUE -->
-<section class="cards-section" id="cards">
-  <div class="cards-header animate">
+  <div class="hero">
     <div>
-      <div class="section-label">Card Catalogue</div>
-      <h2 class="section-title">Find your perfect match</h2>
-    </div>
-    <a href="#" class="btn-secondary" style="font-size:.9rem;">View all 50+ cards →</a>
-  </div>
-
-  <div class="cards-grid stagger">
-    <!-- Card 1 -->
-    <div class="card-item blue">
-      <div class="mini-card blue">
-        <div class="mini-card-shine"></div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div class="mini-card-name">HDFC Regalia</div>
-          <div style="width:22px;height:16px;border-radius:3px;background:linear-gradient(135deg,#d4af37,#f0d060);"></div>
-        </div>
-        <div class="mini-card-num">4532 •••• •••• 1129</div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;">
-          <div style="font-size:.62rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.05em;">Rahul Sharma</div>
-          <span style="font-size:1rem;font-style:italic;font-weight:700;color:rgba(255,255,255,.9);">VISA</span>
-        </div>
-      </div>
-      <div class="card-name">HDFC Regalia</div>
-      <div class="card-desc">Premium travel card with 4 reward points per ₹150 spent, lounge access, and milestone bonuses.</div>
-      <div class="card-pills">
-        <span class="pill">✈ Travel</span>
-        <span class="pill">🏨 Hotels</span>
-        <span class="pill">4X Points</span>
-      </div>
-      <div class="card-footer">
-        <div class="card-limit"><span class="card-limit">Annual Fee</span><strong>₹2,500</strong></div>
-        <span class="card-badge badge-top">🏆 Top Pick</span>
+      <div class="hero-badge">Smart Credit Management · India</div>
+      <h1>Master your cards.<br><em>Maximize</em> every rupee.</h1>
+      <p class="hero-sub">CardFlow tracks billing cycles, reward points, and spending windows — so you always know the best card to swipe, and the best day to swipe it.</p>
+      <div class="hero-actions">
+        <button class="btn btn-dark" onclick="showPage('add')">Get Started Free →</button>
+        <button class="btn btn-outline" onclick="showPage('mycards')">View My Cards</button>
       </div>
     </div>
-
-    <!-- Card 2 -->
-    <div class="card-item coral">
-      <div class="mini-card coral">
-        <div class="mini-card-shine"></div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div class="mini-card-name">Axis Magnus</div>
-          <div style="width:22px;height:16px;border-radius:3px;background:linear-gradient(135deg,#d4af37,#f0d060);"></div>
-        </div>
-        <div class="mini-card-num">5412 •••• •••• 7783</div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;">
-          <div style="font-size:.62rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.05em;">Priya Patel</div>
-          <div style="display:flex;"><span style="width:18px;height:18px;border-radius:50%;background:#eb001b;margin-right:-7px;display:block;"></span><span style="width:18px;height:18px;border-radius:50%;background:#f79e1b;opacity:.9;display:block;"></span></div>
-        </div>
+    <div class="card-stack">
+      <div class="cc cc-navy">
+        <div class="cc-shine"></div><div class="cc-glow"></div>
+        <div class="cc-top"><div class="cc-bank">Sapphire Reserve</div><div class="cc-chip"></div></div>
+        <div class="cc-mid"><div class="cc-number">4521 •••• •••• 8834</div></div>
+        <div class="cc-bottom"><div><div class="cc-holder">Adrish Kumar</div><div class="cc-exp">Expires <span>09/27</span></div></div><span class="cc-visa">VISA</span></div>
       </div>
-      <div class="card-name">Axis Magnus</div>
-      <div class="card-desc">Best-in-class rewards with 12 EDGE points per ₹200. Convert to airline miles for outsized value.</div>
-      <div class="card-pills">
-        <span class="pill">✈ Miles</span>
-        <span class="pill">🍽 Dining</span>
-        <span class="pill">12X Rewards</span>
+      <div class="cc cc-black">
+        <div class="cc-shine"></div>
+        <div class="cc-top"><div class="cc-bank" style="color:rgba(255,255,255,.5)">Prestige Black</div><div class="cc-chip"></div></div>
+        <div class="cc-mid"><div class="cc-number" style="color:rgba(255,255,255,.6);font-size:.8rem">5412 •••• •••• 2291</div></div>
+        <div class="cc-bottom"><div><div class="cc-holder" style="opacity:.55">Adrish Kumar</div><div class="cc-exp" style="opacity:.35">Expires <span style="opacity:1">12/26</span></div></div><div class="cc-mc"><b></b><b></b></div></div>
       </div>
-      <div class="card-footer">
-        <div class="card-limit"><span class="card-limit">Annual Fee</span><strong>₹10,000</strong></div>
-        <span class="card-badge badge-hot">🔥 Trending</span>
-      </div>
-    </div>
-
-    <!-- Card 3 -->
-    <div class="card-item gold">
-      <div class="mini-card gold">
-        <div class="mini-card-shine"></div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div class="mini-card-name">SBI SimplyCLICK</div>
-          <div style="width:22px;height:16px;border-radius:3px;background:linear-gradient(135deg,#d4af37,#f0d060);"></div>
-        </div>
-        <div class="mini-card-num">4111 •••• •••• 5563</div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;">
-          <div style="font-size:.62rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.05em;">Amit Desai</div>
-          <span style="font-size:1rem;font-style:italic;font-weight:700;color:rgba(255,255,255,.9);">VISA</span>
-        </div>
-      </div>
-      <div class="card-name">SBI SimplyCLICK</div>
-      <div class="card-desc">Online shopping powerhouse. 10X rewards on Amazon, Swiggy, Zomato and other partner brands.</div>
-      <div class="card-pills">
-        <span class="pill">🛒 Shopping</span>
-        <span class="pill">🍕 Food</span>
-        <span class="pill">10X Online</span>
-      </div>
-      <div class="card-footer">
-        <div class="card-limit"><span class="card-limit">Annual Fee</span><strong>₹499</strong></div>
-        <span class="card-badge badge-new">✨ Best Value</span>
-      </div>
-    </div>
-
-    <!-- Card 4 -->
-    <div class="card-item purple">
-      <div class="mini-card purple">
-        <div class="mini-card-shine"></div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div class="mini-card-name">ICICI Amazon Pay</div>
-          <div style="width:22px;height:16px;border-radius:3px;background:linear-gradient(135deg,#d4af37,#f0d060);"></div>
-        </div>
-        <div class="mini-card-num">5234 •••• •••• 9921</div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;">
-          <div style="font-size:.62rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.05em;">Neha Singh</div>
-          <span style="font-size:1rem;font-style:italic;font-weight:700;color:rgba(255,255,255,.9);">VISA</span>
-        </div>
-      </div>
-      <div class="card-name">ICICI Amazon Pay</div>
-      <div class="card-desc">5% cashback for Prime members on Amazon. Great everyday card with no annual fee.</div>
-      <div class="card-pills">
-        <span class="pill">💰 Cashback</span>
-        <span class="pill">🛒 Amazon</span>
-        <span class="pill">No Fee</span>
-      </div>
-      <div class="card-footer">
-        <div class="card-limit"><span class="card-limit">Annual Fee</span><strong>₹0</strong></div>
-        <span class="card-badge badge-new">🆓 Free</span>
-      </div>
-    </div>
-
-    <!-- Card 5 -->
-    <div class="card-item green">
-      <div class="mini-card green">
-        <div class="mini-card-shine"></div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div class="mini-card-name">Yes First Preferred</div>
-          <div style="width:22px;height:16px;border-radius:3px;background:linear-gradient(135deg,#d4af37,#f0d060);"></div>
-        </div>
-        <div class="mini-card-num">4556 •••• •••• 3348</div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;">
-          <div style="font-size:.62rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.05em;">Kiran Nair</div>
-          <div style="display:flex;"><span style="width:18px;height:18px;border-radius:50%;background:#eb001b;margin-right:-7px;display:block;"></span><span style="width:18px;height:18px;border-radius:50%;background:#f79e1b;opacity:.9;display:block;"></span></div>
-        </div>
-      </div>
-      <div class="card-name">Yes First Preferred</div>
-      <div class="card-desc">6 reward points per ₹100 on travel and dining. Complimentary airport lounge access (8/year).</div>
-      <div class="card-pills">
-        <span class="pill">🛫 Lounge</span>
-        <span class="pill">6X Dining</span>
-        <span class="pill">Insurance</span>
-      </div>
-      <div class="card-footer">
-        <div class="card-limit"><span class="card-limit">Annual Fee</span><strong>₹1,499</strong></div>
-        <span class="card-badge badge-top">⭐ Premium</span>
-      </div>
-    </div>
-
-    <!-- Card 6 -->
-    <div class="card-item slate">
-      <div class="mini-card slate">
-        <div class="mini-card-shine"></div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div class="mini-card-name">Kotak 811</div>
-          <div style="width:22px;height:16px;border-radius:3px;background:linear-gradient(135deg,#d4af37,#f0d060);"></div>
-        </div>
-        <div class="mini-card-num">5283 •••• •••• 6671</div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;">
-          <div style="font-size:.62rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.05em;">Rohan Mehta</div>
-          <span style="font-size:1rem;font-style:italic;font-weight:700;color:rgba(255,255,255,.9);">VISA</span>
-        </div>
-      </div>
-      <div class="card-name">Kotak 811 #DreamDifferent</div>
-      <div class="card-desc">Entry-level card with no hidden charges. Build credit history with 2X rewards on online spends.</div>
-      <div class="card-pills">
-        <span class="pill">🎓 Starter</span>
-        <span class="pill">2X Online</span>
-        <span class="pill">No Joining</span>
-      </div>
-      <div class="card-footer">
-        <div class="card-limit"><span class="card-limit">Annual Fee</span><strong>₹0</strong></div>
-        <span class="card-badge badge-new">🌱 Beginner</span>
+      <div class="cc cc-coral">
+        <div class="cc-shine"></div><div class="cc-glow"></div>
+        <div class="cc-top"><div class="cc-bank">Rewards Plus</div><div class="cc-chip"></div></div>
+        <div class="cc-mid"><div class="cc-number">3782 •••••• •3456</div></div>
+        <div class="cc-bottom"><div><div class="cc-holder">Adrish Kumar</div><div class="cc-exp">Expires <span>03/28</span></div></div><div style="font-size:.7rem;font-weight:800;letter-spacing:.1em;opacity:.9">AMEX</div></div>
       </div>
     </div>
   </div>
-</section>
 
-<!-- FEATURES -->
-<section class="features-section" id="features">
-  <div class="features-inner">
-    <div class="animate" style="text-align:center;max-width:560px;margin:0 auto;">
-      <div class="section-label">Why CardFlow</div>
-      <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
-    </div>
-    <div class="features-grid stagger">
-      <div class="feature">
-        <div class="feature-icon fi-blue">📅</div>
-        <h3>Smart Billing Tracker</h3>
-        <p>Know exactly when each card's statement generates and when payment is due. Never miss a date or pay interest accidentally.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon fi-coral">⚡</div>
-        <h3>Best-Day-to-Spend Engine</h3>
-        <p>Our algorithm tells you which card to use today based on billing cycle position to maximize your interest-free days.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon fi-gold">🏆</div>
-        <h3>Reward Point Optimizer</h3>
-        <p>Track points across all cards, get alerts before they expire, and see which card gives maximum points for each spend category.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon fi-purple">🔔</div>
-        <h3>Smart Alerts</h3>
-        <p>Payment reminders, reward expiry alerts, and spending pattern insights delivered at exactly the right moment.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon fi-green">📊</div>
-        <h3>Spend Analytics</h3>
-        <p>Visual breakdown of where your money goes — by card, category, and month. Spot patterns and optimize automatically.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon fi-slate">🔒</div>
-        <h3>Privacy First</h3>
-        <p>No bank credentials required. CardFlow works with just your card meta-data. Your financial data stays on your device.</p>
-      </div>
-    </div>
+  <div class="stats-bar">
+    <div class="stat"><span class="stat-n">2.<em>4</em>L+</span><div class="stat-l">Reward Points Tracked</div></div>
+    <div class="stat"><span class="stat-n"><em>48</em>hrs</span><div class="stat-l">Avg Setup Time</div></div>
+    <div class="stat"><span class="stat-n">₹<em>12</em>K</span><div class="stat-l">Avg Annual Savings</div></div>
+    <div class="stat"><span class="stat-n"><em>50</em>+</span><div class="stat-l">Indian Cards</div></div>
   </div>
-</section>
 
-<!-- HOW IT WORKS -->
-<section class="how-section" id="how">
-  <div class="animate" style="text-align:center;max-width:500px;margin:0 auto;">
-    <div class="section-label">Getting Started</div>
-    <h2 class="section-title">Up and running<br>in 3 minutes</h2>
-  </div>
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">1</div>
-      <h3>Add Your Cards</h3>
-      <p>Enter your card name and two dates from your bank SMS — statement date and payment due date.</p>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <h3>Set Up Rewards</h3>
-      <p>Link each card to its reward program. Enter your current point balance to get started.</p>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <h3>Get Daily Guidance</h3>
-      <p>Each morning, CardFlow shows which card to use, what to avoid, and upcoming due dates.</p>
-    </div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <h3>Watch Points Grow</h3>
-      <p>Track rewards, get redemption tips, and see your annual cashback equivalent in real time.</p>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
-<div style="max-width:1280px;margin:0 auto;padding:0 48px;">
-  <div class="cta-section animate">
-    <div class="cta-text">
-      <h2>Start earning more from<br>your cards <em>today.</em></h2>
-      <p>Join thousands of Indians who've stopped leaving reward points on the table. CardFlow is free to use, forever. No credit card needed.</p>
-      <div class="cta-form">
-        <input type="email" placeholder="your@email.com">
-        <button class="btn-white">Get Started →</button>
+  <div class="vs">
+    <div class="sl">Learn &amp; Explore</div>
+    <h2 class="st">Understand credit.<br>Use it smarter.</h2>
+    <p class="ss">Guides on billing cycles, reward maximization, and building a powerful card stack for India.</p>
+    <div class="vgrid">
+      <div class="vc">
+        <div class="ve"><div class="vp vp-navy" onclick="loadVid(this,'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1')"><div class="play-btn">▶</div><div class="vp-title">The Complete Guide to Billing Cycles in India</div><div class="vp-sub">9 min · CardFlow Guide</div></div></div>
+        <div class="vm"><span class="vtag t-blue">Featured</span><h3>Billing Cycles Explained</h3><p>Master the 45-day interest-free window — never accidentally pay interest again.</p></div>
       </div>
-    </div>
-    <div class="cta-visual">
-      <div class="cta-card cta-card-1">
-        <div style="color:rgba(255,255,255,.7);font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Rewards Plus</div>
-        <div style="width:24px;height:17px;border-radius:3px;background:linear-gradient(135deg,#d4af37,#f0d060);"></div>
-        <div class="cta-card .cc-num-sm" style="font-family:monospace;font-size:.75rem;letter-spacing:.1em;opacity:.85;color:#fff;">3782 •••••• •3456</div>
-        <div style="color:rgba(255,255,255,.6);font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Adrish Kumar</div>
-      </div>
-      <div class="cta-card cta-card-2">
-        <div style="color:rgba(255,255,255,.7);font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Gold Premium</div>
-        <div style="width:24px;height:17px;border-radius:3px;background:linear-gradient(135deg,#9b7700,#c9a600);"></div>
-        <div style="font-family:monospace;font-size:.75rem;letter-spacing:.1em;opacity:.85;color:#fff;">4021 •••• •••• 5544</div>
-        <div style="color:rgba(255,255,255,.6);font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Adrish Kumar</div>
-      </div>
-      <div class="cta-card cta-card-3">
-        <div style="color:rgba(255,255,255,.7);font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Sapphire Reserve</div>
-        <div style="width:24px;height:17px;border-radius:3px;background:linear-gradient(135deg,#d4af37,#f0d060);"></div>
-        <div style="font-family:monospace;font-size:.75rem;letter-spacing:.1em;opacity:.85;color:#fff;">4521 •••• •••• 8834</div>
-        <div style="color:rgba(255,255,255,.6);font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Adrish Kumar</div>
+      <div class="vside">
+        <div class="vc">
+          <div class="ve"><div class="vp vp-coral" onclick="loadVid(this,'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1')"><div class="play-btn">▶</div><div class="vp-title">Top 5 Reward Cards 2025</div><div class="vp-sub">6 min</div></div></div>
+          <div class="vm"><span class="vtag t-coral">Rewards</span><h3>Best Reward Cards</h3><p>HDFC Regalia vs Axis Magnus — which stacks better for you?</p></div>
+        </div>
+        <div class="vc">
+          <div class="ve"><div class="vp vp-dark" onclick="loadVid(this,'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1')"><div class="play-btn">▶</div><div class="vp-title">Boost Your CIBIL Score in 90 Days</div><div class="vp-sub">11 min</div></div></div>
+          <div class="vm"><span class="vtag t-gray">Credit Health</span><h3>Improve Your CIBIL</h3><p>7 strategies banks don't want you to know.</p></div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- FOOTER -->
-<footer>
-  <div class="footer-logo">CardFlow ·</div>
-  <div class="footer-links">
-    <a href="#">About</a>
-    <a href="#">Privacy</a>
-    <a href="#">Terms</a>
-    <a href="#">Blog</a>
-    <a href="#">Contact</a>
+<!-- ② MY CARDS -->
+<div class="page" id="page-mycards">
+  <div class="cpage">
+    <div class="cph">
+      <div><div class="sl">Card Catalogue</div><h2 class="st">Find your perfect match</h2></div>
+      <button class="btn btn-dark" onclick="showPage('add')">+ Add a Card</button>
+    </div>
+    <div class="cgrid">
+      <div class="ci ci-blue">
+        <div class="mc mc-blue"><div class="mc-sh"></div><div style="display:flex;justify-content:space-between"><div class="mc-bank">HDFC Regalia</div><div style="width:20px;height:14px;border-radius:3px;background:linear-gradient(135deg,#d4af37,#f0d060)"></div></div><div class="mc-num">4532 •••• •••• 1129</div><div class="mc-row"><div class="mc-name">Rahul Sharma</div><span class="mc-visa">VISA</span></div></div>
+        <div class="ci-n">HDFC Regalia</div><div class="ci-d">Premium travel card · 4 reward points per ₹150 · Lounge access</div>
+        <div class="ci-pills"><span class="pill">✈ Travel</span><span class="pill">🏨 Hotels</span><span class="pill">4X Points</span></div>
+        <div class="ci-ft"><div class="ci-fee"><span>Annual Fee</span><strong>₹2,500</strong></div><span class="badge b-top">🏆 Top Pick</span></div>
+      </div>
+      <div class="ci ci-coral">
+        <div class="mc mc-coral"><div class="mc-sh"></div><div style="display:flex;justify-content:space-between"><div class="mc-bank">Axis Magnus</div><div style="width:20px;height:14px;border-radius:3px;background:linear-gradient(135deg,#d4af37,#f0d060)"></div></div><div class="mc-num">5412 •••• •••• 7783</div><div class="mc-row"><div class="mc-name">Priya Patel</div><div class="mc-mc2"><b></b><b></b></div></div></div>
+        <div class="ci-n">Axis Magnus</div><div class="ci-d">12 EDGE points per ₹200 · Best-in-class rewards · Convert to airline miles</div>
+        <div class="ci-pills"><span class="pill">✈ Miles</span><span class="pill">🍽 Dining</span><span class="pill">12X</span></div>
+        <div class="ci-ft"><div class="ci-fee"><span>Annual Fee</span><strong>₹10,000</strong></div><span class="badge b-hot">🔥 Trending</span></div>
+      </div>
+      <div class="ci ci-gold">
+        <div class="mc mc-gold"><div class="mc-sh"></div><div style="display:flex;justify-content:space-between"><div class="mc-bank">SBI SimplyCLICK</div><div style="width:20px;height:14px;border-radius:3px;background:linear-gradient(135deg,#d4af37,#f0d060)"></div></div><div class="mc-num">4111 •••• •••• 5563</div><div class="mc-row"><div class="mc-name">Amit Desai</div><span class="mc-visa">VISA</span></div></div>
+        <div class="ci-n">SBI SimplyCLICK</div><div class="ci-d">10X rewards on Amazon, Swiggy, Zomato · Online shopping specialist</div>
+        <div class="ci-pills"><span class="pill">🛒 Shopping</span><span class="pill">🍕 Food</span><span class="pill">10X</span></div>
+        <div class="ci-ft"><div class="ci-fee"><span>Annual Fee</span><strong>₹499</strong></div><span class="badge b-new">✨ Best Value</span></div>
+      </div>
+      <div class="ci ci-purple">
+        <div class="mc mc-purple"><div class="mc-sh"></div><div style="display:flex;justify-content:space-between"><div class="mc-bank">ICICI Amazon Pay</div><div style="width:20px;height:14px;border-radius:3px;background:linear-gradient(135deg,#d4af37,#f0d060)"></div></div><div class="mc-num">5234 •••• •••• 9921</div><div class="mc-row"><div class="mc-name">Neha Singh</div><span class="mc-visa">VISA</span></div></div>
+        <div class="ci-n">ICICI Amazon Pay</div><div class="ci-d">5% cashback for Prime members · No annual fee · Great everyday card</div>
+        <div class="ci-pills"><span class="pill">💰 Cashback</span><span class="pill">🛒 Amazon</span><span class="pill">Free</span></div>
+        <div class="ci-ft"><div class="ci-fee"><span>Annual Fee</span><strong>₹0</strong></div><span class="badge b-new">🆓 Free</span></div>
+      </div>
+      <div class="ci ci-green">
+        <div class="mc mc-green"><div class="mc-sh"></div><div style="display:flex;justify-content:space-between"><div class="mc-bank">Yes First Preferred</div><div style="width:20px;height:14px;border-radius:3px;background:linear-gradient(135deg,#d4af37,#f0d060)"></div></div><div class="mc-num">4556 •••• •••• 3348</div><div class="mc-row"><div class="mc-name">Kiran Nair</div><div class="mc-mc2"><b></b><b></b></div></div></div>
+        <div class="ci-n">Yes First Preferred</div><div class="ci-d">6 reward points per ₹100 · 8 lounge visits/year · Travel insurance</div>
+        <div class="ci-pills"><span class="pill">🛫 Lounge</span><span class="pill">6X Dining</span><span class="pill">Insurance</span></div>
+        <div class="ci-ft"><div class="ci-fee"><span>Annual Fee</span><strong>₹1,499</strong></div><span class="badge b-top">⭐ Premium</span></div>
+      </div>
+      <div class="ci ci-slate">
+        <div class="mc mc-slate"><div class="mc-sh"></div><div style="display:flex;justify-content:space-between"><div class="mc-bank">Kotak 811</div><div style="width:20px;height:14px;border-radius:3px;background:linear-gradient(135deg,#d4af37,#f0d060)"></div></div><div class="mc-num">5283 •••• •••• 6671</div><div class="mc-row"><div class="mc-name">Rohan Mehta</div><span class="mc-visa">VISA</span></div></div>
+        <div class="ci-n">Kotak 811</div><div class="ci-d">Entry-level · No hidden charges · 2X rewards on online spends</div>
+        <div class="ci-pills"><span class="pill">🎓 Starter</span><span class="pill">2X Online</span><span class="pill">No Fee</span></div>
+        <div class="ci-ft"><div class="ci-fee"><span>Annual Fee</span><strong>₹0</strong></div><span class="badge b-new">🌱 Beginner</span></div>
+      </div>
+    </div>
   </div>
-  <div class="footer-copy">© 2025 CardFlow. Made with ♥ for smart spenders.</div>
-</footer>
+</div>
+
+<!-- ③ REWARDS -->
+<div class="page" id="page-rewards">
+  <div class="rpage">
+    <div class="sl">Rewards Centre</div>
+    <h2 class="st">Your points portfolio</h2>
+    <p class="ss">Track every reward point across all your cards before they expire.</p>
+    <div class="rgrid">
+      <div class="rc rc-big">
+        <div>
+          <h3>Total Points Value</h3>
+          <p>Across all 3 cards — estimated redemption value</p>
+          <div class="ptotal">₹4,280</div>
+          <div class="rmeter"><div class="rfill rf-coral" style="width:72%"></div></div>
+          <div class="rmeta"><span>72% toward next milestone</span><strong>12,450 pts total</strong></div>
+        </div>
+        <div class="pvis">
+          <div class="prow"><div class="picon">💳</div><div><div class="pname">HDFC Regalia</div><div class="plbl">Reward Points</div></div><div class="pval">6,200</div></div>
+          <div class="prow"><div class="picon">⚡</div><div><div class="pname">Axis Magnus</div><div class="plbl">EDGE Points</div></div><div class="pval">4,850</div></div>
+          <div class="prow"><div class="picon">⭐</div><div><div class="pname">Amex Rewards</div><div class="plbl">Membership Rewards</div></div><div class="pval">1,400</div></div>
+        </div>
+      </div>
+      <div class="rc"><h3>HDFC Regalia</h3><p>Reward Points expire Dec 2025 · 4X on dining &amp; travel</p><div class="rmeter"><div class="rfill rf-blue" style="width:62%"></div></div><div class="rmeta"><span>6,200 / 10,000 pts</span><strong>62%</strong></div></div>
+      <div class="rc"><h3>Axis Magnus</h3><p>EDGE Points — transfer to airline miles at 1:1 ratio</p><div class="rmeter"><div class="rfill rf-coral" style="width:48%"></div></div><div class="rmeta"><span>4,850 / 10,000 pts</span><strong>48%</strong></div></div>
+      <div class="rc"><h3>Amex Rewards Plus</h3><p>Membership Rewards · Transfer to 20+ airline partners</p><div class="rmeter"><div class="rfill rf-gold" style="width:28%"></div></div><div class="rmeta"><span>1,400 / 5,000 pts</span><strong>28%</strong></div></div>
+      <div class="rc"><h3>Best Card to Use Today</h3><p>Based on your billing cycles, use HDFC Regalia today for maximum interest-free days.</p><div style="margin-top:14px;padding:12px;background:var(--bg);border-radius:11px;display:flex;align-items:center;gap:11px"><div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#1e40af,#3b82f6);flex-shrink:0"></div><div><div style="font-size:.8rem;font-weight:700">HDFC Regalia</div><div style="font-size:.72rem;color:var(--ink2)">38 interest-free days left</div></div><div style="margin-left:auto;font-size:.76rem;font-weight:700;color:#059669">✓ Use today</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ④ INSIGHTS -->
+<div class="page" id="page-insights">
+  <div class="ipage">
+    <div class="sl">Spending Intelligence</div>
+    <h2 class="st">Your money, mapped.</h2>
+    <p class="ss">Understand exactly where your spend goes and which card works hardest for you.</p>
+    <div class="igd">
+      <div>
+        <div class="ic" style="margin-bottom:20px">
+          <div class="ic-h">Monthly Spend (₹) — Last 6 months</div>
+          <div class="bar-chart" id="barChart"></div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">
+            <div style="display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--ink2)"><div style="width:9px;height:9px;border-radius:2px;background:#1a5c38"></div>HDFC</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--ink2)"><div style="width:9px;height:9px;border-radius:2px;background:#2d9e63"></div>Axis</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--ink2)"><div style="width:9px;height:9px;border-radius:2px;background:#7dcc9f"></div>Amex</div>
+          </div>
+        </div>
+        <div class="ic">
+          <div class="ic-h">Spend by Category</div>
+          <div class="dw">
+            <div class="dr"><div class="dd" style="background:#1a5c38"></div><div class="dn">Shopping</div><div class="dbb"><div class="dbf" style="width:72%;background:linear-gradient(90deg,#1a5c38,#2d9e63);height:100%;border-radius:100px"></div></div><div class="dp">32%</div></div>
+            <div class="dr"><div class="dd" style="background:#2d9e63"></div><div class="dn">Food &amp; Dining</div><div class="dbb"><div class="dbf" style="width:55%;background:linear-gradient(90deg,#2d9e63,#52c285);height:100%;border-radius:100px"></div></div><div class="dp">25%</div></div>
+            <div class="dr"><div class="dd" style="background:#52c285"></div><div class="dn">Travel</div><div class="dbb"><div class="dbf" style="width:40%;background:linear-gradient(90deg,#52c285,#80d4a8);height:100%;border-radius:100px"></div></div><div class="dp">18%</div></div>
+            <div class="dr"><div class="dd" style="background:#80d4a8"></div><div class="dn">Entertainment</div><div class="dbb"><div class="dbf" style="width:28%;background:linear-gradient(90deg,#80d4a8,#a8e4c5);height:100%;border-radius:100px"></div></div><div class="dp">12%</div></div>
+            <div class="dr"><div class="dd" style="background:#a8e4c5"></div><div class="dn">Utilities</div><div class="dbb"><div class="dbf" style="width:20%;background:linear-gradient(90deg,#a8e4c5,#c5edda);height:100%;border-radius:100px"></div></div><div class="dp">8%</div></div>
+            <div class="dr"><div class="dd" style="background:var(--ink3)"></div><div class="dn">Other</div><div class="dbb"><div class="dbf" style="width:11%;background:var(--ink3);height:100%;border-radius:100px"></div></div><div class="dp">5%</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="ic">
+        <div class="ic-h">Recent Transactions</div>
+        <div class="tl">
+          <div class="ti2"><div class="td" style="background:#1a5c38"></div><div class="tc"><div class="tt">Amazon Order</div><div class="tdate">Today · HDFC Regalia</div></div><div class="ta r">−₹2,340</div></div>
+          <div class="ti2"><div class="td" style="background:#2d9e63"></div><div class="tc"><div class="tt">Points Credited</div><div class="tdate">Today · HDFC</div></div><div class="ta g">+94 pts</div></div>
+          <div class="ti2"><div class="td" style="background:#2d7a4f"></div><div class="tc"><div class="tt">Swiggy Order</div><div class="tdate">Yesterday · Axis Magnus</div></div><div class="ta r">−₹680</div></div>
+          <div class="ti2"><div class="td" style="background:#2d7a4f"></div><div class="tc"><div class="tt">Zomato Gold</div><div class="tdate">2 days ago · Axis</div></div><div class="ta r">−₹450</div></div>
+          <div class="ti2"><div class="td" style="background:#52c285"></div><div class="tc"><div class="tt">IndiGo Flights</div><div class="tdate">3 days ago · Amex</div></div><div class="ta r">−₹8,200</div></div>
+          <div class="ti2"><div class="td" style="background:#80d4a8"></div><div class="tc"><div class="tt">Netflix Subscription</div><div class="tdate">4 days ago · HDFC</div></div><div class="ta r">−₹649</div></div>
+          <div class="ti2"><div class="td" style="background:#2d9e63"></div><div class="tc"><div class="tt">Cashback Received</div><div class="tdate">5 days ago · SBI</div></div><div class="ta g">+₹120</div></div>
+          <div class="ti2"><div class="td" style="background:#1a5c38"></div><div class="tc"><div class="tt">Flipkart Sale</div><div class="tdate">6 days ago · HDFC</div></div><div class="ta r">−₹3,499</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ⑤ ADD CARD -->
+<div class="page" id="page-add">
+  <div class="apage">
+    <div class="sl">Add New Card</div>
+    <h2 class="st" style="margin-bottom:30px">Which card are you adding?</h2>
+
+    <div class="stepper">
+      <div class="si active" id="s1"><div class="snum">1</div><div class="slbl">Card</div></div>
+      <div class="si" id="s2"><div class="snum">2</div><div class="slbl">Dates</div></div>
+      <div class="si" id="s3"><div class="snum">3</div><div class="slbl">Confirm</div></div>
+      <div class="si" id="s4"><div class="snum">4</div><div class="slbl">Rewards</div></div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div id="step1">
+      <div class="prev-cc" id="prevCard" style="background:linear-gradient(135deg,#0e2456,#1a3a7a)">
+        <div class="cc-shine"></div>
+        <div class="cc-top"><div class="cc-bank" id="pcBank" style="font-size:.63rem;letter-spacing:.07em;opacity:.7;text-transform:uppercase;font-weight:700">Your Card Name</div><div class="cc-chip"></div></div>
+        <div class="cc-mid"><div class="cc-number" style="font-family:monospace;font-size:.86rem;letter-spacing:.18em;color:rgba(255,255,255,.8)">•••• •••• •••• ••••</div></div>
+        <div class="cc-bottom"><div><div class="cc-holder" style="font-size:.68rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.75" id="pcName">Your Name</div></div><span class="cc-visa">VISA</span></div>
+      </div>
+      <div class="fc">
+        <h2>Select your card</h2>
+        <p class="fc-sub">Pick a popular Indian card or enter your own below.</p>
+        <div class="pg">
+          <div class="pp" onclick="selCard(this,'HDFC Regalia','#1e40af','#3b82f6')">HDFC Regalia</div>
+          <div class="pp" onclick="selCard(this,'Axis Magnus','#c43d25','#e8533a')">Axis Magnus</div>
+          <div class="pp" onclick="selCard(this,'SBI SimplyCLICK','#92400e','#d97706')">SBI SimplyCLICK</div>
+          <div class="pp" onclick="selCard(this,'ICICI Amazon Pay','#5b21b6','#8b5cf6')">ICICI Amazon Pay</div>
+          <div class="pp" onclick="selCard(this,'Yes First Preferred','#065f46','#10b981')">Yes First Preferred</div>
+          <div class="pp" onclick="selCard(this,'Kotak 811','#1e293b','#475569')">Kotak 811</div>
+        </div>
+        <div class="ord">or enter manually</div>
+        <div class="field"><label>Card Nickname</label><input type="text" placeholder="e.g. My HDFC Card" id="cardNick" oninput="document.getElementById('pcBank').textContent=this.value||'Your Card Name'"></div>
+        <div class="field"><label>Card Colour</label>
+          <div class="cp">
+            <div class="cpick sel" style="background:linear-gradient(135deg,#0e2456,#1a3a7a)" onclick="setCol(this,'linear-gradient(135deg,#0e2456,#1a3a7a)')"></div>
+            <div class="cpick" style="background:linear-gradient(135deg,#c43d25,#e8533a)" onclick="setCol(this,'linear-gradient(135deg,#c43d25,#e8533a)')"></div>
+            <div class="cpick" style="background:linear-gradient(135deg,#181818,#2d2d2d)" onclick="setCol(this,'linear-gradient(135deg,#181818,#2d2d2d)')"></div>
+            <div class="cpick" style="background:linear-gradient(135deg,#5b21b6,#8b5cf6)" onclick="setCol(this,'linear-gradient(135deg,#5b21b6,#8b5cf6)')"></div>
+            <div class="cpick" style="background:linear-gradient(135deg,#065f46,#10b981)" onclick="setCol(this,'linear-gradient(135deg,#065f46,#10b981)')"></div>
+            <div class="cpick" style="background:linear-gradient(135deg,#92400e,#d97706)" onclick="setCol(this,'linear-gradient(135deg,#92400e,#d97706)')"></div>
+          </div>
+        </div>
+        <div class="fa"><div></div><button class="btn btn-dark" onclick="goStep(2)">Next →</button></div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="step2" style="display:none">
+      <div class="fc">
+        <h2>Your billing dates</h2>
+        <p class="fc-sub">Find these two dates in your bank SMS or email after statement generation.</p>
+        <div class="frow">
+          <div class="field"><label>Payment Due Date</label><input type="number" min="1" max="31" placeholder="e.g. 15" id="dueDate"><div style="font-size:.7rem;color:var(--ink3);margin-top:4px">Last date to pay without charges</div></div>
+          <div class="field"><label>Statement / Billing Date</label><input type="number" min="1" max="31" placeholder="e.g. 22" id="statDate"><div style="font-size:.7rem;color:var(--ink3);margin-top:4px">Date your monthly statement generates</div></div>
+        </div>
+        <div class="info-box">💡 <strong>Where to find these?</strong> Check any recent bank SMS: <em>"Statement for XXXX-1234 generated. Total due: ₹X,XXX. Payment due: DD/MM."</em></div>
+        <div class="fa"><button class="btn btn-outline" onclick="goStep(1)">← Back</button><button class="btn btn-dark" onclick="goStep(3)">Next →</button></div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="step3" style="display:none">
+      <div class="fc">
+        <h2>Does this look right?</h2>
+        <p class="fc-sub">Plain-English summary of your card's billing cycle.</p>
+        <div class="confirm-grid">
+          <div class="cg-item"><div class="cg-l">Statement Date</div><div class="cg-v">22nd</div></div>
+          <div class="cg-item"><div class="cg-l">Payment Due</div><div class="cg-v">15th</div></div>
+          <div class="cg-item"><div class="cg-l">Interest-Free Days</div><div class="cg-v">Up to 48</div></div>
+          <div class="cg-item"><div class="cg-l">Best Spend Days</div><div class="cg-v">23rd–30th</div></div>
+        </div>
+        <div class="info-box" style="background:#edf7f1;border-color:#a8d9bc">⚠️ Interest-free period assumes full outstanding balance is paid by due date. Minimum payments do not preserve this benefit.</div>
+        <div class="fa"><button class="btn btn-outline" onclick="goStep(2)">← Edit</button><button class="btn btn-dark" onclick="goStep(4)">Next →</button></div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div id="step4" style="display:none">
+      <div class="fc">
+        <h2>Reward Setup</h2>
+        <p class="fc-sub">Link this card to its reward program to get spending intelligence.</p>
+        <div class="field"><label>Current Points Balance (Optional)</label><input type="number" placeholder="e.g. 2400"></div>
+        <div class="field"><label>Reward Program</label>
+          <select>
+            <option>HDFC Reward Points</option><option>Axis EDGE Points</option>
+            <option>SBI Reward Points</option><option>Amex Membership Rewards</option>
+            <option>Yes Rewardz</option><option>Other / Unknown</option>
+          </select>
+        </div>
+        <div class="fa"><button class="btn btn-outline" onclick="goStep(3)">← Back</button><button class="btn btn-accent" onclick="cardSaved()">💾 Save Card</button></div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /add -->
+
+</div><!-- /page-wrap -->
 
 <script>
-  // Scroll animations
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if(e.isIntersecting) {
-        e.target.classList.add('visible');
-        observer.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.12 });
-
-  document.querySelectorAll('.animate, .stagger').forEach(el => observer.observe(el));
-
-  // Video placeholder click → load real iframe
-  function loadVideo(el, src) {
-    const iframe = document.createElement('iframe');
-    iframe.src = src;
-    iframe.allow = 'autoplay; encrypted-media; fullscreen';
-    iframe.allowFullscreen = true;
-    iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;';
-    el.parentElement.appendChild(iframe);
-    el.remove();
-  }
-
-  // Card tilt effect
-  document.querySelectorAll('.cc').forEach(card => {
-    card.addEventListener('mousemove', e => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left - rect.width/2;
-      const y = e.clientY - rect.top - rect.height/2;
-      const rotX = -(y / rect.height) * 8;
-      const rotY = (x / rect.width) * 8;
-      card.style.transform += ` perspective(600px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
-    });
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = '';
-    });
+/* PAGE SWITCHER */
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const tab=document.querySelector('[data-page="'+id+'"]');
+  if(tab)tab.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(id==='insights')buildChart();
+}
+/* VIDEO */
+function loadVid(el,src){
+  const f=document.createElement('iframe');
+  f.src=src;f.allow='autoplay;encrypted-media;fullscreen';f.allowFullscreen=true;
+  el.parentElement.appendChild(f);el.remove();
+}
+/* CARD TILT */
+document.querySelectorAll('.cc').forEach(c=>{
+  c.addEventListener('mousemove',e=>{
+    const r=c.getBoundingClientRect();
+    const x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2;
+    const base=c.classList.contains('cc-navy')?'rotate(-7deg) translateY(18px) translateX(-8px)':
+               c.classList.contains('cc-black')?'rotate(4deg) translateY(-8px) translateX(8px)':
+               'rotate(1deg) translateY(46px) translateX(46px)';
+    c.style.transform=`${base} perspective(600px) rotateX(${-(y/r.height)*6}deg) rotateY(${(x/r.width)*6}deg)`;
   });
+  c.addEventListener('mouseleave',()=>c.style.transform='');
+});
+/* ADD CARD */
+function selCard(el,name,c1,c2){
+  document.querySelectorAll('.pp').forEach(p=>p.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('cardNick').value=name;
+  document.getElementById('pcBank').textContent=name;
+  document.getElementById('prevCard').style.background=`linear-gradient(135deg,${c1},${c2})`;
+}
+function setCol(el,grad){
+  document.querySelectorAll('.cpick').forEach(p=>p.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('prevCard').style.background=grad;
+}
+function goStep(n){
+  for(let i=1;i<=4;i++){
+    document.getElementById('step'+i).style.display=i===n?'block':'none';
+    const s=document.getElementById('s'+i);
+    s.className='si'+(i<n?' done':i===n?' active':'');
+  }
+}
+function cardSaved(){alert('🎉 Card saved! Check "My Cards" to see it.');showPage('mycards');}
+/* BAR CHART */
+function buildChart(){
+  const data=[
+    {m:'Nov',h:12000,a:8000,x:4000},{m:'Dec',h:15000,a:11000,x:6000},
+    {m:'Jan',h:9000,a:7000,x:5000},{m:'Feb',h:18000,a:13000,x:8000},
+    {m:'Mar',h:14000,a:9000,x:7000},{m:'Apr',h:22000,a:16000,x:9000},
+  ];
+  const max=47000;
+  const chart=document.getElementById('barChart');
+  if(!chart)return;chart.innerHTML='';
+  data.forEach(d=>{
+    const total=d.h+d.a+d.x;
+    const h=Math.round(total/max*128);
+    const wrap=document.createElement('div');wrap.className='bw';
+    wrap.innerHTML=`<div class="bv">₹${(total/1000).toFixed(0)}K</div>
+    <div style="display:flex;gap:2px;align-items:flex-end;height:${h}px;width:100%">
+      <div style="background:#1a5c38;height:${Math.round(d.h/total*100)}%;flex:1;border-radius:4px 4px 0 0"></div>
+      <div style="background:#2d9e63;height:${Math.round(d.a/total*100)}%;flex:1;border-radius:4px 4px 0 0"></div>
+      <div style="background:#7dcc9f;height:${Math.round(d.x/total*100)}%;flex:1;border-radius:4px 4px 0 0"></div>
+    </div><div class="bl">${d.m}</div>`;
+    chart.appendChild(wrap);
+  });
+}
 </script>
 </body>
 </html>
